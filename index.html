@@ -1,19 +1,871 @@
-<!doctype html>
-<html>
-	<head>
-		<meta charset="utf-8" />
-		<meta name="viewport" content="width=device-width" />
-		<title>My static Space</title>
-		<link rel="stylesheet" href="style.css" />
-	</head>
-	<body>
-		<div class="card">
-			<h1>Welcome to your static Space!</h1>
-			<p>You can modify this app directly by editing <i>index.html</i> in the Files and versions tab.</p>
-			<p>
-				Also don't forget to check the
-				<a href="https://huggingface.co/docs/hub/spaces" target="_blank">Spaces documentation</a>.
-			</p>
-		</div>
-	</body>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ossy Skill Tube - Learn Skills from Creators</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        }
+        
+        .video-card:hover .video-overlay {
+            opacity: 1;
+        }
+        
+        .video-overlay {
+            transition: opacity 0.3s ease;
+            opacity: 0;
+        }
+        
+        .tab-active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+        
+        .modal-overlay {
+            background-color: rgba(15, 23, 42, 0.8);
+        }
+        
+        .wallet-pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.4);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(74, 222, 128, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+            }
+        }
+        
+        .progress-ring__circle {
+            transition: stroke-dashoffset 0.35s;
+            transform: rotate(-90deg);
+            transform-origin: 50% 50%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Auth Modal -->
+    <div id="authModal" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay hidden">
+        <div class="bg-slate-800 rounded-xl p-8 w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Welcome to Ossy Skill Tube</h2>
+                <button onclick="closeAuthModal()" class="text-slate-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <button onclick="signInWithGoogle()" class="w-full flex items-center justify-center space-x-3 bg-slate-700 hover:bg-slate-600 text-white py-3 px-4 rounded-lg transition">
+                    <i class="fab fa-google text-red-400"></i>
+                    <span>Continue with Google</span>
+                </button>
+                
+                <div class="relative flex items-center py-4">
+                    <div class="flex-grow border-t border-slate-600"></div>
+                    <span class="flex-shrink mx-4 text-slate-400">or</span>
+                    <div class="flex-grow border-t border-slate-600"></div>
+                </div>
+                
+                <div>
+                    <label for="email" class="block text-sm font-medium text-slate-300 mb-1">Email address</label>
+                    <input type="email" id="email" placeholder="Enter your email" class="w-full bg-slate-700 border border-slate-600 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <button onclick="sendMagicLink()" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg transition">
+                    Send Magic Link
+                </button>
+                
+                <p class="text-sm text-slate-400 mt-4">
+                    By continuing, you agree to our <a href="#" class="text-blue-400 hover:underline">Terms of Service</a> and <a href="#" class="text-blue-400 hover:underline">Privacy Policy</a>.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Upload Modal -->
+    <div id="uploadModal" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay hidden">
+        <div class="bg-slate-800 rounded-xl p-8 w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Upload New Skill Video</h2>
+                <button onclick="closeUploadModal()" class="text-slate-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Video File</label>
+                        <div class="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition" id="videoDropzone">
+                            <i class="fas fa-video text-3xl text-slate-500 mb-2"></i>
+                            <p class="text-slate-400">Drag & drop your video file here</p>
+                            <p class="text-xs text-slate-500 mt-2">MP4, MOV, or AVI (Max 2GB)</p>
+                            <input type="file" id="videoInput" class="hidden" accept="video/*">
+                        </div>
+                        <p id="videoFileName" class="text-sm text-slate-400 mt-2 hidden"></p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Thumbnail</label>
+                        <div class="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition" id="thumbnailDropzone">
+                            <i class="fas fa-image text-3xl text-slate-500 mb-2"></i>
+                            <p class="text-slate-400">Drag & drop your thumbnail here</p>
+                            <p class="text-xs text-slate-500 mt-2">JPG or PNG (16:9 ratio)</p>
+                            <input type="file" id="thumbnailInput" class="hidden" accept="image/*">
+                        </div>
+                        <p id="thumbnailFileName" class="text-sm text-slate-400 mt-2 hidden"></p>
+                    </div>
+                </div>
+                
+                <div>
+                    <label for="videoTitle" class="block text-sm font-medium text-slate-300 mb-1">Title</label>
+                    <input type="text" id="videoTitle" placeholder="e.g. Advanced Woodworking Techniques" class="w-full bg-slate-700 border border-slate-600 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label for="videoDescription" class="block text-sm font-medium text-slate-300 mb-1">Description</label>
+                    <textarea id="videoDescription" rows="3" placeholder="Describe what skills viewers will learn..." class="w-full bg-slate-700 border border-slate-600 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="videoCategory" class="block text-sm font-medium text-slate-300 mb-1">Category</label>
+                        <select id="videoCategory" class="w-full bg-slate-700 border border-slate-600 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Select a category</option>
+                            <option value="AI & Automation">AI & Automation</option>
+                            <option value="Ancestral Wisdom">Ancestral Wisdom</option>
+                            <option value="Arts & Crafts">Arts & Crafts</option>
+                            <option value="Automotive & Mechanics">Automotive & Mechanics</option>
+                            <option value="Cooking & Culinary">Cooking & Culinary</option>
+                            <option value="Engineering & Design">Engineering & Design</option>
+                            <option value="Expat & Travel">Expat & Travel</option>
+                            <option value="Fitness & Wellness">Fitness & Wellness</option>
+                            <option value="Gardening & Sustainability">Gardening & Sustainability</option>
+                            <option value="Languages & Culture">Languages & Culture</option>
+                            <option value="Music & Performance">Music & Performance</option>
+                            <option value="Technology & Tools">Technology & Tools</option>
+                            <option value="Trade Techniques">Trade Techniques</option>
+                            <option value="Gaming & Game Dev">Gaming & Game Dev</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label for="videoPrice" class="block text-sm font-medium text-slate-300 mb-1">Price (OSSY)</label>
+                        <div class="relative">
+                            <input type="number" id="videoPrice" min="1" value="5" class="w-full bg-slate-700 border border-slate-600 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <span class="text-slate-400">OSSY</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button onclick="closeUploadModal()" class="px-4 py-2 border border-slate-600 text-slate-300 rounded-lg hover:bg-slate-700 transition">
+                        Cancel
+                    </button>
+                    <button onclick="uploadVideo()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center space-x-2">
+                        <i class="fas fa-cloud-upload-alt"></i>
+                        <span>Upload & Process</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Video Player Modal -->
+    <div id="videoPlayerModal" class="fixed inset-0 z-50 flex items-center justify-center modal-overlay hidden">
+        <div class="bg-slate-800 rounded-xl p-4 w-full max-w-4xl">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="videoPlayerTitle" class="text-xl font-bold">Video Title</h2>
+                <button onclick="closeVideoPlayer()" class="text-slate-400 hover:text-white">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="aspect-w-16 aspect-h-9 bg-black rounded-lg overflow-hidden">
+                <video id="videoPlayer" controls class="w-full">
+                    <source src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            
+            <div class="mt-4 flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-eye text-slate-400"></i>
+                        <span id="videoViews" class="text-slate-300">1,234 views</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i class="fas fa-star text-yellow-400"></i>
+                        <span id="videoRating" class="text-slate-300">4.8</span>
+                    </div>
+                </div>
+                
+                <button id="downloadBtn" onclick="downloadVideo()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center space-x-2">
+                    <i class="fas fa-download"></i>
+                    <span>Download for Offline</span>
+                </button>
+            </div>
+            
+            <div class="mt-4">
+                <p id="videoPlayerDescription" class="text-slate-300">
+                    Video description goes here...
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Navigation -->
+    <nav class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="flex-shrink-0">
+                        <a href="#" class="text-blue-400 font-bold text-xl flex items-center">
+                            <i class="fas fa-graduation-cap mr-2"></i>
+                            Ossy Skill Tube
+                        </a>
+                    </div>
+                    
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <a href="#" class="tab-active px-3 py-2 text-sm font-medium">Explore</a>
+                            <a href="#" class="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium">My Library</a>
+                            <a href="#" class="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium">Live Classes</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="hidden md:block">
+                    <div class="ml-4 flex items-center md:ml-6 space-x-4">
+                        <div class="relative">
+                            <input type="text" placeholder="Search skills..." class="bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64">
+                            <button class="absolute right-3 top-1.5 text-slate-400">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        
+                        <button id="walletBtn" onclick="showWallet()" class="bg-slate-800 hover:bg-slate-700 text-green-400 font-medium px-3 py-1.5 rounded-full text-sm flex items-center space-x-1 wallet-pulse">
+                            <i class="fas fa-wallet"></i>
+                            <span>25.50 OSSY</span>
+                        </button>
+                        
+                        <div class="relative ml-3">
+                            <div>
+                                <button onclick="toggleProfileMenu()" class="max-w-xs bg-slate-800 rounded-full flex items-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500" id="user-menu">
+                                    <span class="sr-only">Open user menu</span>
+                                    <img class="h-8 w-8 rounded-full" src="https://randomuser.me/api/portraits/men/32.jpg" alt="User profile">
+                                </button>
+                            </div>
+                            
+                            <div id="profileMenu" class="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-slate-800 ring-1 ring-black ring-opacity-5 hidden" role="menu">
+                                <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700" role="menuitem">Your Profile</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700" role="menuitem">Creator Dashboard</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700" role="menuitem">Settings</a>
+                                <a href="#" class="block px-4 py-2 text-sm text-red-400 hover:bg-slate-700" role="menuitem">Sign out</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="-mr-2 flex md:hidden">
+                    <button onclick="toggleMobileMenu()" class="inline-flex items-center justify-center p-2 rounded-md text-slate-400 hover:text-white hover:bg-slate-700 focus:outline-none">
+                        <span class="sr-only">Open main menu</span>
+                        <i class="fas fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="mobileMenu" class="md:hidden hidden">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-white bg-slate-800">Explore</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-700">My Library</a>
+                <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-700">Live Classes</a>
+            </div>
+            <div class="pt-4 pb-3 border-t border-slate-700">
+                <div class="flex items-center px-5">
+                    <div class="flex-shrink-0">
+                        <img class="h-10 w-10 rounded-full" src="https://randomuser.me/api/portraits/men/32.jpg" alt="User profile">
+                    </div>
+                    <div class="ml-3">
+                        <div class="text-base font-medium text-white">John Doe</div>
+                        <div class="text-sm font-medium text-green-400">25.50 OSSY</div>
+                    </div>
+                </div>
+                <div class="mt-3 px-2 space-y-1">
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-700">Your Profile</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-700">Creator Dashboard</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-slate-300 hover:text-white hover:bg-slate-700">Settings</a>
+                    <a href="#" class="block px-3 py-2 rounded-md text-base font-medium text-red-400 hover:text-white hover:bg-slate-700">Sign out</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Hero Section -->
+    <header class="hero-gradient">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div class="text-center">
+                <h1 class="text-4xl md:text-5xl font-bold mb-6">Learn Skills from <span class="text-blue-400">Real Creators</span></h1>
+                <p class="text-xl text-slate-300 max-w-3xl mx-auto mb-8">
+                    Discover, purchase, and master skills through high-quality video lessons. 
+                    Support creators directly and access content offline.
+                </p>
+                <div class="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+                    <button onclick="openAuthModal()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                        Get Started - It's Free
+                    </button>
+                    <button onclick="openUploadModal()" class="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition flex items-center justify-center space-x-2">
+                        <i class="fas fa-video"></i>
+                        <span>Become a Creator</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Categories -->
+        <div class="mb-8">
+            <h2 class="text-2xl font-bold mb-4">Browse Categories</h2>
+            <div class="flex flex-wrap gap-2">
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">All</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">AI & Automation</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">Arts & Crafts</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">Cooking & Culinary</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">Fitness & Wellness</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">Technology & Tools</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">View All</button>
+            </div>
+        </div>
+        
+        <!-- Featured Videos -->
+        <div class="mb-12">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Featured Skills</h2>
+                <a href="#" class="text-blue-400 hover:underline text-sm">See all</a>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Video Card 1 -->
+                <div class="video-card bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer">
+                    <div class="relative aspect-video">
+                        <img src="https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Video thumbnail" class="w-full h-full object-cover">
+                        <div class="video-overlay absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                            <button onclick="openVideoPlayer('Advanced Python Programming', 'Learn advanced Python techniques from a senior developer with 10+ years experience.', 1245, 4.7)" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center transition">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        </div>
+                        <div class="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                            12:34
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-medium mb-1">Advanced Python Programming</h3>
+                        <p class="text-slate-400 text-sm mb-2">By Jane Smith</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-green-400 font-medium">5 OSSY</span>
+                            <button onclick="buyVideo(event, 5)" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition">
+                                Buy Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Video Card 2 -->
+                <div class="video-card bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer">
+                    <div class="relative aspect-video">
+                        <img src="https://images.unsplash.com/photo-1605000797499-95a51c5269ae?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Video thumbnail" class="w-full h-full object-cover">
+                        <div class="video-overlay absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                            <button onclick="openVideoPlayer('Organic Gardening Basics', 'Start your organic garden with these fundamental techniques.', 892, 4.9)" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center transition">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        </div>
+                        <div class="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                            18:22
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-medium mb-1">Organic Gardening Basics</h3>
+                        <p class="text-slate-400 text-sm mb-2">By Michael Green</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-green-400 font-medium">3 OSSY</span>
+                            <button onclick="buyVideo(event, 3)" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition">
+                                Buy Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Video Card 3 (Owned) -->
+                <div class="video-card bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer">
+                    <div class="relative aspect-video">
+                        <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Video thumbnail" class="w-full h-full object-cover">
+                        <div class="video-overlay absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                            <button onclick="openVideoPlayer('Woodworking for Beginners', 'Learn the fundamentals of woodworking with simple projects.', 1567, 4.5)" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center transition">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        </div>
+                        <div class="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                            25:10
+                        </div>
+                        <div class="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded flex items-center">
+                            <i class="fas fa-check mr-1"></i>
+                            <span>Owned</span>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-medium mb-1">Woodworking for Beginners</h3>
+                        <p class="text-slate-400 text-sm mb-2">By Sarah Johnson</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-green-400 font-medium">7 OSSY</span>
+                            <button onclick="watchVideo(event)" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded transition">
+                                Watch Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Video Card 4 -->
+                <div class="video-card bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer">
+                    <div class="relative aspect-video">
+                        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Video thumbnail" class="w-full h-full object-cover">
+                        <div class="video-overlay absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                            <button onclick="openVideoPlayer('Authentic Italian Pasta', 'Master the art of making authentic Italian pasta from scratch.', 2103, 4.8)" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center transition">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        </div>
+                        <div class="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                            32:45
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-medium mb-1">Authentic Italian Pasta</h3>
+                        <p class="text-slate-400 text-sm mb-2">By Marco Rossi</p>
+                        <div class="flex justify-between items-center">
+                            <span class="text-green-400 font-medium">8 OSSY</span>
+                            <button onclick="buyVideo(event, 8)" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition">
+                                Buy Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Live Classes Section -->
+        <div class="mb-12">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Upcoming Live Classes</h2>
+                <a href="#" class="text-blue-400 hover:underline text-sm">View schedule</a>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Live Class 1 -->
+                <div class="bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition">
+                    <div class="relative aspect-video">
+                        <img src="https://images.unsplash.com/photo-1571260899304-425eee4c7efc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Live class thumbnail" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70"></div>
+                        <div class="absolute bottom-0 left-0 right-0 p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="bg-red-600 text-white text-xs px-2 py-1 rounded-full">LIVE</span>
+                                <span class="text-white text-sm">Starts in 2h 15m</span>
+                            </div>
+                            <h3 class="text-white font-medium">Yoga for Beginners</h3>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Instructor" class="w-10 h-10 rounded-full">
+                            <div>
+                                <p class="text-sm font-medium">Emily Chen</p>
+                                <p class="text-xs text-slate-400">Certified Yoga Instructor</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-2 text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <span class="text-sm">4.9 (128)</span>
+                            </div>
+                            <button onclick="bookLiveClass(event)" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition">
+                                Book Now - 15 OSSY
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Live Class 2 -->
+                <div class="bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition">
+                    <div class="relative aspect-video">
+                        <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Live class thumbnail" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70"></div>
+                        <div class="absolute bottom-0 left-0 right-0 p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">UPCOMING</span>
+                                <span class="text-white text-sm">Tomorrow, 10:00 AM</span>
+                            </div>
+                            <h3 class="text-white font-medium">Digital Marketing Masterclass</h3>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Instructor" class="w-10 h-10 rounded-full">
+                            <div>
+                                <p class="text-sm font-medium">David Wilson</p>
+                                <p class="text-xs text-slate-400">Marketing Expert</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-2 text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <span class="text-sm">4.7 (95)</span>
+                            </div>
+                            <button onclick="bookLiveClass(event)" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition">
+                                Book Now - 20 OSSY
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Live Class 3 -->
+                <div class="bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition">
+                    <div class="relative aspect-video">
+                        <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Live class thumbnail" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70"></div>
+                        <div class="absolute bottom-0 left-0 right-0 p-4">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">UPCOMING</span>
+                                <span class="text-white text-sm">Friday, 3:00 PM</span>
+                            </div>
+                            <h3 class="text-white font-medium">Photography Composition</h3>
+                        </div>
+                    </div>
+                    <div class="p-4">
+                        <div class="flex items-center space-x-3 mb-3">
+                            <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Instructor" class="w-10 h-10 rounded-full">
+                            <div>
+                                <p class="text-sm font-medium">Lisa Thompson</p>
+                                <p class="text-xs text-slate-400">Professional Photographer</p>
+                            </div>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center space-x-2 text-yellow-400">
+                                <i class="fas fa-star"></i>
+                                <span class="text-sm">5.0 (64)</span>
+                            </div>
+                            <button onclick="bookLiveClass(event)" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition">
+                                Book Now - 18 OSSY
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Top Creators -->
+        <div class="mb-12">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-2xl font-bold">Top Creators This Week</h2>
+                <a href="#" class="text-blue-400 hover:underline text-sm">View all creators</a>
+            </div>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                <!-- Creator 1 -->
+                <div class="text-center">
+                    <div class="relative mx-auto w-20 h-20 mb-3">
+                        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-blue-500">
+                        <div class="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                            1
+                        </div>
+                    </div>
+                    <h3 class="font-medium text-sm">Emily Chen</h3>
+                    <p class="text-slate-400 text-xs">Yoga & Wellness</p>
+                </div>
+                
+                <!-- Creator 2 -->
+                <div class="text-center">
+                    <div class="relative mx-auto w-20 h-20 mb-3">
+                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-blue-500">
+                        <div class="absolute -bottom-1 -right-1 bg-yellow-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                            2
+                        </div>
+                    </div>
+                    <h3 class="font-medium text-sm">David Wilson</h3>
+                    <p class="text-slate-400 text-xs">Marketing</p>
+                </div>
+                
+                <!-- Creator 3 -->
+                <div class="text-center">
+                    <div class="relative mx-auto w-20 h-20 mb-3">
+                        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-blue-500">
+                        <div class="absolute -bottom-1 -right-1 bg-amber-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
+                            3
+                        </div>
+                    </div>
+                    <h3 class="font-medium text-sm">Lisa Thompson</h3>
+                    <p class="text-slate-400 text-xs">Photography</p>
+                </div>
+                
+                <!-- Creator 4 -->
+                <div class="text-center">
+                    <div class="mx-auto w-20 h-20 mb-3">
+                        <img src="https://randomuser.me/api/portraits/men/75.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-slate-600">
+                    </div>
+                    <h3 class="font-medium text-sm">Robert Kim</h3>
+                    <p class="text-slate-400 text-xs">Programming</p>
+                </div>
+                
+                <!-- Creator 5 -->
+                <div class="text-center">
+                    <div class="mx-auto w-20 h-20 mb-3">
+                        <img src="https://randomuser.me/api/portraits/women/33.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-slate-600">
+                    </div>
+                    <h3 class="font-medium text-sm">Sarah Johnson</h3>
+                    <p class="text-slate-400 text-xs">Woodworking</p>
+                </div>
+                
+                <!-- Creator 6 -->
+                <div class="text-center">
+                    <div class="mx-auto w-20 h-20 mb-3">
+                        <img src="https://randomuser.me/api/portraits/men/65.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-slate-600">
+                    </div>
+                    <h3 class="font-medium text-sm">Marco Rossi</h3>
+                    <p class="text-slate-400 text-xs">Culinary Arts</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Footer -->
+    <footer class="bg-slate-900 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-4 flex items-center">
+                        <i class="fas fa-graduation-cap mr-2 text-blue-400"></i>
+                        Ossy Skill Tube
+                    </h3>
+                    <p class="text-slate-400 text-sm">
+                        Empowering creators and learners through skill-sharing. 
+                        Earn while you teach, learn at your own pace.
+                    </p>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4">For Learners</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Browse Skills</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Live Classes</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">My Library</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Skill Points</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4">For Creators</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Become a Creator</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Creator Dashboard</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Pricing Guide</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Community Fund</a></li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4">Company</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">About Us</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Careers</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Blog</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Contact</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="mt-12 pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center">
+                <p class="text-slate-500 text-sm">
+                    &copy; 2023 Ossy Skill Tube. All rights reserved.
+                </p>
+                
+                <div class="flex space-x-6 mt-4 md:mt-0">
+                    <a href="#" class="text-slate-400 hover:text-white transition">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="text-slate-400 hover:text-white transition">
+                        <i class="fab fa-facebook"></i>
+                    </a>
+                    <a href="#" class="text-slate-400 hover:text-white transition">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="#" class="text-slate-400 hover:text-white transition">
+                        <i class="fab fa-linkedin"></i>
+                    </a>
+                    <a href="#" class="text-slate-400 hover:text-white transition">
+                        <i class="fab fa-youtube"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+    
+    <script>
+        // Auth Modal
+        function openAuthModal() {
+            document.getElementById('authModal').classList.remove('hidden');
+        }
+        
+        function closeAuthModal() {
+            document.getElementById('authModal').classList.add('hidden');
+        }
+        
+        function signInWithGoogle() {
+            alert('Sign in with Google would be implemented here');
+            closeAuthModal();
+        }
+        
+        function sendMagicLink() {
+            const email = document.getElementById('email').value;
+            if (email) {
+                alert(`Magic link sent to ${email}`);
+                closeAuthModal();
+            } else {
+                alert('Please enter your email address');
+            }
+        }
+        
+        // Upload Modal
+        function openUploadModal() {
+            document.getElementById('uploadModal').classList.remove('hidden');
+        }
+        
+        function closeUploadModal() {
+            document.getElementById('uploadModal').classList.add('hidden');
+        }
+        
+        // Handle file drops
+        document.getElementById('videoDropzone').addEventListener('click', function() {
+            document.getElementById('videoInput').click();
+        });
+        
+        document.getElementById('thumbnailDropzone').addEventListener('click', function() {
+            document.getElementById('thumbnailInput').click();
+        });
+        
+        document.getElementById('videoInput').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const fileName = e.target.files[0].name;
+                document.getElementById('videoFileName').textContent = fileName;
+                document.getElementById('videoFileName').classList.remove('hidden');
+            }
+        });
+        
+        document.getElementById('thumbnailInput').addEventListener('change', function(e) {
+            if (e.target.files.length > 0) {
+                const fileName = e.target.files[0].name;
+                document.getElementById('thumbnailFileName').textContent = fileName;
+                document.getElementById('thumbnailFileName').classList.remove('hidden');
+            }
+        });
+        
+        function uploadVideo() {
+            const title = document.getElementById('videoTitle').value;
+            const category = document.getElementById('videoCategory').value;
+            const price = document.getElementById('videoPrice').value;
+            
+            if (!title || !category || !price) {
+                alert('Please fill in all required fields');
+                return;
+            }
+            
+            alert(`Video "${title}" uploaded successfully! Processing preview and compression...`);
+            closeUploadModal();
+        }
+        
+        // Video Player Modal
+        function openVideoPlayer(title, description, views, rating) {
+            document.getElementById('videoPlayerTitle').textContent = title;
+            document.getElementById('videoPlayerDescription').textContent = description;
+            document.getElementById('videoViews').textContent = views.toLocaleString() + ' views';
+            document.getElementById('videoRating').textContent = rating;
+            
+            // In a real app, we'd set the video source here
+            document.getElementById('videoPlayerModal').classList.remove('hidden');
+        }
+        
+        function closeVideoPlayer() {
+            const videoPlayer = document.getElementById('videoPlayer');
+            videoPlayer.pause();
+            videoPlayer.currentTime = 0;
+            document.getElementById('videoPlayerModal').classList.add('hidden');
+        }
+        
+        function downloadVideo() {
+            alert('Video downloaded to your library for offline viewing');
+        }
+        
+        // Buy Video
+        function buyVideo(event, price) {
+            event.stopPropagation();
+            if (confirm(`Purchase this video for ${price} OSSY?`)) {
+                alert('Video purchased successfully! Added to your library.');
+            }
+        }
+        
+        function watchVideo(event) {
+            event.stopPropagation();
+            alert('Opening video from your library...');
+        }
+        
+        // Book Live Class
+        function bookLiveClass(event) {
+            event.stopPropagation();
+            if (confirm('Book this live class? You will receive a reminder before it starts.')) {
+                alert('Class booked successfully! Check your email for details.');
+            }
+        }
+        
+        // Profile Menu
+        function toggleProfileMenu() {
+            const menu = document.getElementById('profileMenu');
+            menu.classList.toggle('hidden');
+        }
+        
+        // Close profile menu when clicking elsewhere
+        document.addEventListener('click', function(event) {
+            if (!event.target.closest('#user-menu') && !event.target.closest('#profileMenu')) {
+                document.getElementById('profileMenu').classList.add('hidden');
+            }
+        });
+        
+        // Mobile Menu
+        function toggleMobileMenu() {
+            document.getElementById('mobileMenu').classList.toggle('hidden');
+        }
+        
+        // Wallet
+        function showWallet() {
+            alert('Your wallet balance: 25.50 OSSY\n\nRecent transactions:\n- Purchased "Woodworking for Beginners" -7 OSSY\n- Received from community pool +2.50 OSSY\n- Deposited +30 OSSY');
+        }
+    </script>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=Crs527/crs" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
 </html>

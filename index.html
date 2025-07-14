@@ -6,6 +6,10 @@
     <title>Ossy Skill Tube - Learn Skills from Creators</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
@@ -294,7 +298,7 @@
                                 <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700" role="menuitem">Your Profile</a>
                                 <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700" role="menuitem">Creator Dashboard</a>
                                 <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700" role="menuitem">Settings</a>
-                                <a href="#" class="block px-4 py-2 text-sm text-red-400 hover:bg-slate-700" role="menuitem">Sign out</a>
+                                <a href="#" onclick="signOut()" class="block px-4 py-2 text-sm text-red-400 hover:bg-slate-700" role="menuitem">Sign out</a>
                             </div>
                         </div>
                     </div>
@@ -481,6 +485,13 @@
     </footer>
     
     <script>
+        // Firebase Configuration is loaded from firebase-config.js
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
         // API Configuration
         const API_BASE_URL = 'http://localhost:3000/api';
         let currentVideos = [];
@@ -488,6 +499,22 @@
 
         // Initialize the app
         document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication state
+            auth.onAuthStateChanged(function(user) {
+                if (user) {
+                    currentUser = {
+                        id: user.uid,
+                        name: user.displayName || user.email.split('@')[0],
+                        email: user.email,
+                        role: 'viewer'
+                    };
+                    updateUIForLoggedInUser();
+                } else {
+                    currentUser = null;
+                    updateUIForLoggedOutUser();
+                }
+            });
+            
             loadVideos();
             setupEventListeners();
         });
@@ -797,43 +824,32 @@
         }
         
         function signInWithGoogle() {
-            // For now, simulate successful login
-            currentUser = {
-                id: 'user_' + Date.now(),
-                name: 'Test User',
-                email: 'test@example.com',
-                role: 'viewer'
-            };
-            
-            // Update UI to show logged in state
-            document.getElementById('walletBtn').innerHTML = `
-                <i class="fas fa-wallet"></i>
-                <span>25.50 OSSY</span>
-            `;
-            
-            closeAuthModal();
-            alert('Signed in successfully! You can now upload videos.');
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then((result) => {
+                closeAuthModal();
+                console.log('Google sign-in successful');
+            }).catch((error) => {
+                console.error('Google sign-in error:', error);
+                alert('Sign-in failed: ' + error.message);
+            });
         }
         
         function sendMagicLink() {
             const email = document.getElementById('email').value;
             if (email) {
-                // Simulate magic link login
-                currentUser = {
-                    id: 'user_' + Date.now(),
-                    name: email.split('@')[0],
-                    email: email,
-                    role: 'viewer'
+                const actionCodeSettings = {
+                    url: window.location.href,
+                    handleCodeInApp: true
                 };
                 
-                // Update UI to show logged in state
-                document.getElementById('walletBtn').innerHTML = `
-                    <i class="fas fa-wallet"></i>
-                    <span>25.50 OSSY</span>
-                `;
-                
-                alert(`Magic link sent to ${email} (simulated)`);
-                closeAuthModal();
+                auth.sendSignInLinkToEmail(email, actionCodeSettings).then(() => {
+                    window.localStorage.setItem('emailForSignIn', email);
+                    alert(`Magic link sent to ${email}`);
+                    closeAuthModal();
+                }).catch((error) => {
+                    console.error('Magic link error:', error);
+                    alert('Failed to send magic link: ' + error.message);
+                });
             } else {
                 alert('Please enter your email address');
             }
@@ -912,8 +928,49 @@
             document.getElementById('mobileMenu').classList.toggle('hidden');
         }
         
+        // UI Update Functions
+        function updateUIForLoggedInUser() {
+            const walletBtn = document.getElementById('walletBtn');
+            const profileImg = document.querySelector('#user-menu img');
+            
+            if (currentUser) {
+                walletBtn.innerHTML = `
+                    <i class="fas fa-wallet"></i>
+                    <span>25.50 OSSY</span>
+                `;
+                
+                if (currentUser.name) {
+                    // Update profile image if available
+                    if (currentUser.photoURL) {
+                        profileImg.src = currentUser.photoURL;
+                    }
+                }
+            }
+        }
+        
+        function updateUIForLoggedOutUser() {
+            const walletBtn = document.getElementById('walletBtn');
+            walletBtn.innerHTML = `
+                <i class="fas fa-wallet"></i>
+                <span>Sign In</span>
+            `;
+        }
+        
+        // Sign out function
+        function signOut() {
+            auth.signOut().then(() => {
+                console.log('User signed out');
+            }).catch((error) => {
+                console.error('Sign out error:', error);
+            });
+        }
+        
         // Wallet
         function showWallet() {
+            if (!currentUser) {
+                openAuthModal();
+                return;
+            }
             alert('Your wallet balance: 25.50 OSSY\n\nRecent transactions:\n- Purchased "Woodworking for Beginners" -7 OSSY\n- Received from community pool +2.50 OSSY\n- Deposited +30 OSSY');
         }
     </script>

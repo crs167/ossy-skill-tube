@@ -482,7 +482,7 @@
     
     <script>
         // API Configuration
-        const API_BASE_URL = 'http://localhost:3001/api';
+        const API_BASE_URL = 'http://localhost:3000/api';
         let currentVideos = [];
         let currentUser = null;
 
@@ -797,14 +797,42 @@
         }
         
         function signInWithGoogle() {
-            alert('Sign in with Google would be implemented here');
+            // For now, simulate successful login
+            currentUser = {
+                id: 'user_' + Date.now(),
+                name: 'Test User',
+                email: 'test@example.com',
+                role: 'viewer'
+            };
+            
+            // Update UI to show logged in state
+            document.getElementById('walletBtn').innerHTML = `
+                <i class="fas fa-wallet"></i>
+                <span>25.50 OSSY</span>
+            `;
+            
             closeAuthModal();
+            alert('Signed in successfully! You can now upload videos.');
         }
         
         function sendMagicLink() {
             const email = document.getElementById('email').value;
             if (email) {
-                alert(`Magic link sent to ${email}`);
+                // Simulate magic link login
+                currentUser = {
+                    id: 'user_' + Date.now(),
+                    name: email.split('@')[0],
+                    email: email,
+                    role: 'viewer'
+                };
+                
+                // Update UI to show logged in state
+                document.getElementById('walletBtn').innerHTML = `
+                    <i class="fas fa-wallet"></i>
+                    <span>25.50 OSSY</span>
+                `;
+                
+                alert(`Magic link sent to ${email} (simulated)`);
                 closeAuthModal();
             } else {
                 alert('Please enter your email address');

@@ -6,6 +6,10 @@
     <title>Ossy Skill Tube - Learn Skills from Creators</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
@@ -57,6 +61,20 @@
             transition: stroke-dashoffset 0.35s;
             transform: rotate(-90deg);
             transform-origin: 50% 50%;
+        }
+
+        .loading-spinner {
+            border: 2px solid #3b82f6;
+            border-top: 2px solid transparent;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -123,7 +141,7 @@
                     </div>
                     
                     <div>
-                        <label class="block text-sm font-medium text-slate-300 mb-1">Thumbnail</label>
+                        <label class="block text-sm font-medium text-slate-300 mb-1">Thumbnail (Optional)</label>
                         <div class="border-2 border-dashed border-slate-600 rounded-lg p-6 text-center cursor-pointer hover:border-blue-500 transition" id="thumbnailDropzone">
                             <i class="fas fa-image text-3xl text-slate-500 mb-2"></i>
                             <p class="text-slate-400">Drag & drop your thumbnail here</p>
@@ -211,11 +229,11 @@
                 <div class="flex items-center space-x-4">
                     <div class="flex items-center space-x-2">
                         <i class="fas fa-eye text-slate-400"></i>
-                        <span id="videoViews" class="text-slate-300">1,234 views</span>
+                        <span id="videoViews" class="text-slate-300">0 views</span>
                     </div>
                     <div class="flex items-center space-x-2">
                         <i class="fas fa-star text-yellow-400"></i>
-                        <span id="videoRating" class="text-slate-300">4.8</span>
+                        <span id="videoRating" class="text-slate-300">0.0</span>
                     </div>
                 </div>
                 
@@ -247,8 +265,8 @@
                     
                     <div class="hidden md:block">
                         <div class="ml-10 flex items-baseline space-x-4">
-                            <a href="#" class="tab-active px-3 py-2 text-sm font-medium">Explore</a>
-                            <a href="#" class="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium">My Library</a>
+                            <a href="#" class="tab-active px-3 py-2 text-sm font-medium" onclick="switchTab('explore')">Explore</a>
+                            <a href="#" class="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium" onclick="switchTab('library')">My Library</a>
                             <a href="#" class="text-slate-300 hover:text-white px-3 py-2 text-sm font-medium">Live Classes</a>
                         </div>
                     </div>
@@ -257,7 +275,7 @@
                 <div class="hidden md:block">
                     <div class="ml-4 flex items-center md:ml-6 space-x-4">
                         <div class="relative">
-                            <input type="text" placeholder="Search skills..." class="bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64">
+                            <input type="text" id="searchInput" placeholder="Search skills..." class="bg-slate-800 text-white px-4 py-1.5 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-64">
                             <button class="absolute right-3 top-1.5 text-slate-400">
                                 <i class="fas fa-search"></i>
                             </button>
@@ -280,7 +298,7 @@
                                 <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700" role="menuitem">Your Profile</a>
                                 <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700" role="menuitem">Creator Dashboard</a>
                                 <a href="#" class="block px-4 py-2 text-sm text-slate-300 hover:bg-slate-700" role="menuitem">Settings</a>
-                                <a href="#" class="block px-4 py-2 text-sm text-red-400 hover:bg-slate-700" role="menuitem">Sign out</a>
+                                <a href="#" onclick="signOut()" class="block px-4 py-2 text-sm text-red-400 hover:bg-slate-700" role="menuitem">Sign out</a>
                             </div>
                         </div>
                     </div>
@@ -348,310 +366,49 @@
         <!-- Categories -->
         <div class="mb-8">
             <h2 class="text-2xl font-bold mb-4">Browse Categories</h2>
-            <div class="flex flex-wrap gap-2">
-                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">All</button>
-                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">AI & Automation</button>
-                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">Arts & Crafts</button>
-                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">Cooking & Culinary</button>
-                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">Fitness & Wellness</button>
-                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">Technology & Tools</button>
-                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition">View All</button>
+            <div class="flex flex-wrap gap-2" id="categoryFilters">
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition category-filter active" data-category="all">All</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition category-filter" data-category="AI & Automation">AI & Automation</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition category-filter" data-category="Arts & Crafts">Arts & Crafts</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition category-filter" data-category="Cooking & Culinary">Cooking & Culinary</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition category-filter" data-category="Fitness & Wellness">Fitness & Wellness</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition category-filter" data-category="Technology & Tools">Technology & Tools</button>
+                <button class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-full text-sm font-medium transition category-filter" data-category="Trade Techniques">Trade Techniques</button>
             </div>
+        </div>
+        
+        <!-- Loading State -->
+        <div id="loadingState" class="flex justify-center items-center py-12">
+            <div class="text-center">
+                <div class="loading-spinner mx-auto mb-4"></div>
+                <p class="text-slate-400">Loading videos from vault...</p>
+            </div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="emptyState" class="text-center py-12 hidden">
+            <i class="fas fa-video text-6xl text-slate-600 mb-4"></i>
+            <h3 class="text-xl font-semibold text-slate-300 mb-2">No Videos Available</h3>
+            <p class="text-slate-400 mb-6">Upload your first video to get started!</p>
+            <button onclick="openUploadModal()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                Upload Your First Video
+            </button>
         </div>
         
         <!-- Featured Videos -->
         <div class="mb-12">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Featured Skills</h2>
-                <a href="#" class="text-blue-400 hover:underline text-sm">See all</a>
+                <h2 class="text-2xl font-bold">Vault Videos</h2>
+                <div class="flex items-center space-x-2">
+                    <span id="videoCount" class="text-slate-400 text-sm">0 videos</span>
+                    <button onclick="refreshVideos()" class="text-blue-400 hover:underline text-sm">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
             </div>
             
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                <!-- Video Card 1 -->
-                <div class="video-card bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer">
-                    <div class="relative aspect-video">
-                        <img src="https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Video thumbnail" class="w-full h-full object-cover">
-                        <div class="video-overlay absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                            <button onclick="openVideoPlayer('Advanced Python Programming', 'Learn advanced Python techniques from a senior developer with 10+ years experience.', 1245, 4.7)" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center transition">
-                                <i class="fas fa-play"></i>
-                            </button>
-                        </div>
-                        <div class="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                            12:34
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-medium mb-1">Advanced Python Programming</h3>
-                        <p class="text-slate-400 text-sm mb-2">By Jane Smith</p>
-                        <div class="flex justify-between items-center">
-                            <span class="text-green-400 font-medium">5 OSSY</span>
-                            <button onclick="buyVideo(event, 5)" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition">
-                                Buy Now
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Video Card 2 -->
-                <div class="video-card bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer">
-                    <div class="relative aspect-video">
-                        <img src="https://images.unsplash.com/photo-1605000797499-95a51c5269ae?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Video thumbnail" class="w-full h-full object-cover">
-                        <div class="video-overlay absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                            <button onclick="openVideoPlayer('Organic Gardening Basics', 'Start your organic garden with these fundamental techniques.', 892, 4.9)" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center transition">
-                                <i class="fas fa-play"></i>
-                            </button>
-                        </div>
-                        <div class="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                            18:22
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-medium mb-1">Organic Gardening Basics</h3>
-                        <p class="text-slate-400 text-sm mb-2">By Michael Green</p>
-                        <div class="flex justify-between items-center">
-                            <span class="text-green-400 font-medium">3 OSSY</span>
-                            <button onclick="buyVideo(event, 3)" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition">
-                                Buy Now
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Video Card 3 (Owned) -->
-                <div class="video-card bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer">
-                    <div class="relative aspect-video">
-                        <img src="https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Video thumbnail" class="w-full h-full object-cover">
-                        <div class="video-overlay absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                            <button onclick="openVideoPlayer('Woodworking for Beginners', 'Learn the fundamentals of woodworking with simple projects.', 1567, 4.5)" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center transition">
-                                <i class="fas fa-play"></i>
-                            </button>
-                        </div>
-                        <div class="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                            25:10
-                        </div>
-                        <div class="absolute top-2 left-2 bg-green-600 text-white text-xs px-2 py-1 rounded flex items-center">
-                            <i class="fas fa-check mr-1"></i>
-                            <span>Owned</span>
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-medium mb-1">Woodworking for Beginners</h3>
-                        <p class="text-slate-400 text-sm mb-2">By Sarah Johnson</p>
-                        <div class="flex justify-between items-center">
-                            <span class="text-green-400 font-medium">7 OSSY</span>
-                            <button onclick="watchVideo(event)" class="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm rounded transition">
-                                Watch Now
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Video Card 4 -->
-                <div class="video-card bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer">
-                    <div class="relative aspect-video">
-                        <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Video thumbnail" class="w-full h-full object-cover">
-                        <div class="video-overlay absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
-                            <button onclick="openVideoPlayer('Authentic Italian Pasta', 'Master the art of making authentic Italian pasta from scratch.', 2103, 4.8)" class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center transition">
-                                <i class="fas fa-play"></i>
-                            </button>
-                        </div>
-                        <div class="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
-                            32:45
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <h3 class="font-medium mb-1">Authentic Italian Pasta</h3>
-                        <p class="text-slate-400 text-sm mb-2">By Marco Rossi</p>
-                        <div class="flex justify-between items-center">
-                            <span class="text-green-400 font-medium">8 OSSY</span>
-                            <button onclick="buyVideo(event, 8)" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition">
-                                Buy Now
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Live Classes Section -->
-        <div class="mb-12">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Upcoming Live Classes</h2>
-                <a href="#" class="text-blue-400 hover:underline text-sm">View schedule</a>
-            </div>
-            
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Live Class 1 -->
-                <div class="bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition">
-                    <div class="relative aspect-video">
-                        <img src="https://images.unsplash.com/photo-1571260899304-425eee4c7efc?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Live class thumbnail" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70"></div>
-                        <div class="absolute bottom-0 left-0 right-0 p-4">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="bg-red-600 text-white text-xs px-2 py-1 rounded-full">LIVE</span>
-                                <span class="text-white text-sm">Starts in 2h 15m</span>
-                            </div>
-                            <h3 class="text-white font-medium">Yoga for Beginners</h3>
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <div class="flex items-center space-x-3 mb-3">
-                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Instructor" class="w-10 h-10 rounded-full">
-                            <div>
-                                <p class="text-sm font-medium">Emily Chen</p>
-                                <p class="text-xs text-slate-400">Certified Yoga Instructor</p>
-                            </div>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <div class="flex items-center space-x-2 text-yellow-400">
-                                <i class="fas fa-star"></i>
-                                <span class="text-sm">4.9 (128)</span>
-                            </div>
-                            <button onclick="bookLiveClass(event)" class="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm rounded transition">
-                                Book Now - 15 OSSY
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Live Class 2 -->
-                <div class="bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition">
-                    <div class="relative aspect-video">
-                        <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Live class thumbnail" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70"></div>
-                        <div class="absolute bottom-0 left-0 right-0 p-4">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">UPCOMING</span>
-                                <span class="text-white text-sm">Tomorrow, 10:00 AM</span>
-                            </div>
-                            <h3 class="text-white font-medium">Digital Marketing Masterclass</h3>
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <div class="flex items-center space-x-3 mb-3">
-                            <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Instructor" class="w-10 h-10 rounded-full">
-                            <div>
-                                <p class="text-sm font-medium">David Wilson</p>
-                                <p class="text-xs text-slate-400">Marketing Expert</p>
-                            </div>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <div class="flex items-center space-x-2 text-yellow-400">
-                                <i class="fas fa-star"></i>
-                                <span class="text-sm">4.7 (95)</span>
-                            </div>
-                            <button onclick="bookLiveClass(event)" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition">
-                                Book Now - 20 OSSY
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Live Class 3 -->
-                <div class="bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition">
-                    <div class="relative aspect-video">
-                        <img src="https://images.unsplash.com/photo-1517048676732-d65bc937f952?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" alt="Live class thumbnail" class="w-full h-full object-cover">
-                        <div class="absolute inset-0 bg-gradient-to-t from-black to-transparent opacity-70"></div>
-                        <div class="absolute bottom-0 left-0 right-0 p-4">
-                            <div class="flex justify-between items-center mb-2">
-                                <span class="bg-blue-600 text-white text-xs px-2 py-1 rounded-full">UPCOMING</span>
-                                <span class="text-white text-sm">Friday, 3:00 PM</span>
-                            </div>
-                            <h3 class="text-white font-medium">Photography Composition</h3>
-                        </div>
-                    </div>
-                    <div class="p-4">
-                        <div class="flex items-center space-x-3 mb-3">
-                            <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Instructor" class="w-10 h-10 rounded-full">
-                            <div>
-                                <p class="text-sm font-medium">Lisa Thompson</p>
-                                <p class="text-xs text-slate-400">Professional Photographer</p>
-                            </div>
-                        </div>
-                        <div class="flex justify-between items-center">
-                            <div class="flex items-center space-x-2 text-yellow-400">
-                                <i class="fas fa-star"></i>
-                                <span class="text-sm">5.0 (64)</span>
-                            </div>
-                            <button onclick="bookLiveClass(event)" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition">
-                                Book Now - 18 OSSY
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Top Creators -->
-        <div class="mb-12">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="text-2xl font-bold">Top Creators This Week</h2>
-                <a href="#" class="text-blue-400 hover:underline text-sm">View all creators</a>
-            </div>
-            
-            <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                <!-- Creator 1 -->
-                <div class="text-center">
-                    <div class="relative mx-auto w-20 h-20 mb-3">
-                        <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-blue-500">
-                        <div class="absolute -bottom-1 -right-1 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                            1
-                        </div>
-                    </div>
-                    <h3 class="font-medium text-sm">Emily Chen</h3>
-                    <p class="text-slate-400 text-xs">Yoga & Wellness</p>
-                </div>
-                
-                <!-- Creator 2 -->
-                <div class="text-center">
-                    <div class="relative mx-auto w-20 h-20 mb-3">
-                        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-blue-500">
-                        <div class="absolute -bottom-1 -right-1 bg-yellow-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                            2
-                        </div>
-                    </div>
-                    <h3 class="font-medium text-sm">David Wilson</h3>
-                    <p class="text-slate-400 text-xs">Marketing</p>
-                </div>
-                
-                <!-- Creator 3 -->
-                <div class="text-center">
-                    <div class="relative mx-auto w-20 h-20 mb-3">
-                        <img src="https://randomuser.me/api/portraits/women/68.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-blue-500">
-                        <div class="absolute -bottom-1 -right-1 bg-amber-700 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                            3
-                        </div>
-                    </div>
-                    <h3 class="font-medium text-sm">Lisa Thompson</h3>
-                    <p class="text-slate-400 text-xs">Photography</p>
-                </div>
-                
-                <!-- Creator 4 -->
-                <div class="text-center">
-                    <div class="mx-auto w-20 h-20 mb-3">
-                        <img src="https://randomuser.me/api/portraits/men/75.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-slate-600">
-                    </div>
-                    <h3 class="font-medium text-sm">Robert Kim</h3>
-                    <p class="text-slate-400 text-xs">Programming</p>
-                </div>
-                
-                <!-- Creator 5 -->
-                <div class="text-center">
-                    <div class="mx-auto w-20 h-20 mb-3">
-                        <img src="https://randomuser.me/api/portraits/women/33.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-slate-600">
-                    </div>
-                    <h3 class="font-medium text-sm">Sarah Johnson</h3>
-                    <p class="text-slate-400 text-xs">Woodworking</p>
-                </div>
-                
-                <!-- Creator 6 -->
-                <div class="text-center">
-                    <div class="mx-auto w-20 h-20 mb-3">
-                        <img src="https://randomuser.me/api/portraits/men/65.jpg" alt="Creator" class="rounded-full w-full h-full object-cover border-2 border-slate-600">
-                    </div>
-                    <h3 class="font-medium text-sm">Marco Rossi</h3>
-                    <p class="text-slate-400 text-xs">Culinary Arts</p>
-                </div>
+            <div id="videosGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                <!-- Videos will be loaded here dynamically -->
             </div>
         </div>
     </main>
@@ -661,14 +418,13 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
                 <div>
-                    <h3 class="text-lg font-bold text-white mb-4 flex items-center">
-                        <i class="fas fa-graduation-cap mr-2 text-blue-400"></i>
-                        Ossy Skill Tube
-                    </h3>
-                    <p class="text-slate-400 text-sm">
-                        Empowering creators and learners through skill-sharing. 
-                        Earn while you teach, learn at your own pace.
-                    </p>
+                    <h3 class="text-sm font-semibold text-white uppercase tracking-wider mb-4">Platform</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">About</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">How it Works</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Pricing</a></li>
+                        <li><a href="#" class="text-slate-400 hover:text-white text-sm transition">Support</a></li>
+                    </ul>
                 </div>
                 
                 <div>
@@ -729,6 +485,335 @@
     </footer>
     
     <script>
+        // Firebase Configuration is loaded from firebase-config.js
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // API Configuration
+        const API_BASE_URL = 'http://localhost:3000/api';
+        let currentVideos = [];
+        let currentUser = null;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication state
+            auth.onAuthStateChanged(function(user) {
+                if (user) {
+                    currentUser = {
+                        id: user.uid,
+                        name: user.displayName || user.email.split('@')[0],
+                        email: user.email,
+                        role: 'viewer'
+                    };
+                    updateUIForLoggedInUser();
+                } else {
+                    currentUser = null;
+                    updateUIForLoggedOutUser();
+                }
+            });
+            
+            loadVideos();
+            setupEventListeners();
+        });
+
+        // Load videos from vault
+        async function loadVideos() {
+            try {
+                showLoading(true);
+                const response = await fetch(`${API_BASE_URL}/vault/videos`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load videos');
+                }
+                
+                const data = await response.json();
+                currentVideos = data.videos || [];
+                
+                displayVideos(currentVideos);
+                updateVideoCount();
+                
+                if (currentVideos.length === 0) {
+                    showEmptyState(true);
+                } else {
+                    showEmptyState(false);
+                }
+            } catch (error) {
+                console.error('Error loading videos:', error);
+                showEmptyState(true);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // Display videos in grid
+        function displayVideos(videos) {
+            const grid = document.getElementById('videosGrid');
+            grid.innerHTML = '';
+
+            if (videos.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full text-center py-12">
+                        <i class="fas fa-video text-4xl text-slate-600 mb-4"></i>
+                        <p class="text-slate-400">No videos found in vault</p>
+                    </div>
+                `;
+                return;
+            }
+
+            videos.forEach(video => {
+                const videoCard = createVideoCard(video);
+                grid.appendChild(videoCard);
+            });
+        }
+
+        // Create video card element
+        function createVideoCard(video) {
+            const card = document.createElement('div');
+            card.className = 'video-card bg-slate-800 rounded-lg overflow-hidden hover:shadow-lg transition cursor-pointer';
+            card.innerHTML = `
+                <div class="relative aspect-video">
+                    <img src="${video.thumbnailUrl || 'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80'}" 
+                         alt="${video.title}" 
+                         class="w-full h-full object-cover">
+                    <div class="video-overlay absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center">
+                        <button onclick="playVideoPreview('${video.id}', '${video.title}', '${video.description}', ${video.views || 0}, ${video.rating || 0})" 
+                                class="bg-blue-600 hover:bg-blue-700 text-white rounded-full w-12 h-12 flex items-center justify-center transition">
+                            <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                    <div class="absolute bottom-2 right-2 bg-black bg-opacity-70 text-white text-xs px-2 py-1 rounded">
+                        ${video.duration || '00:00'}
+                    </div>
+                </div>
+                <div class="p-4">
+                    <h3 class="font-medium mb-1">${video.title}</h3>
+                    <p class="text-slate-400 text-sm mb-2">By ${video.creatorName || 'Creator'}</p>
+                    <div class="flex justify-between items-center">
+                        <span class="text-green-400 font-medium">${video.price} OSSY</span>
+                        <button onclick="buyVideo(event, ${video.price}, '${video.id}')" 
+                                class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded transition">
+                            Buy Now
+                        </button>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        // Play video preview
+        function playVideoPreview(videoId, title, description, views, rating) {
+            document.getElementById('videoPlayerTitle').textContent = title;
+            document.getElementById('videoPlayerDescription').textContent = description;
+            document.getElementById('videoViews').textContent = views.toLocaleString() + ' views';
+            document.getElementById('videoRating').textContent = rating.toFixed(1);
+            
+            // Set video source to preview URL
+            const videoPlayer = document.getElementById('videoPlayer');
+            videoPlayer.src = `${API_BASE_URL}/vault/preview/${videoId}`;
+            
+            document.getElementById('videoPlayerModal').classList.remove('hidden');
+        }
+
+        // Upload video
+        async function uploadVideo() {
+            const formData = new FormData();
+            const videoFile = document.getElementById('videoInput').files[0];
+            const thumbnailFile = document.getElementById('thumbnailInput').files[0];
+            const title = document.getElementById('videoTitle').value;
+            const description = document.getElementById('videoDescription').value;
+            const category = document.getElementById('videoCategory').value;
+            const price = document.getElementById('videoPrice').value;
+
+            if (!videoFile || !title || !category || !price) {
+                alert('Please fill in all required fields and select a video file');
+                return;
+            }
+
+            formData.append('video', videoFile);
+            if (thumbnailFile) {
+                formData.append('thumbnail', thumbnailFile);
+            }
+            formData.append('title', title);
+            formData.append('description', description);
+            formData.append('category', category);
+            formData.append('price', price);
+            formData.append('userId', currentUser?.id || 'temp-user');
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/vault/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Upload failed');
+                }
+
+                const result = await response.json();
+                alert(`Video "${title}" uploaded successfully! Processing preview and compression...`);
+                closeUploadModal();
+                
+                // Refresh videos list
+                setTimeout(() => {
+                    loadVideos();
+                }, 2000);
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Upload failed. Please try again.');
+            }
+        }
+
+        // Buy video
+        async function buyVideo(event, price, videoId) {
+            event.stopPropagation();
+            
+            if (!currentUser) {
+                alert('Please sign in to purchase videos');
+                openAuthModal();
+                return;
+            }
+
+            if (confirm(`Purchase this video for ${price} OSSY?`)) {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/vault/download/${videoId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            userId: currentUser.id
+                        })
+                    });
+
+                    if (response.ok) {
+                        alert('Video purchased successfully! Added to your library.');
+                    } else {
+                        throw new Error('Purchase failed');
+                    }
+                } catch (error) {
+                    console.error('Purchase error:', error);
+                    alert('Purchase failed. Please try again.');
+                }
+            }
+        }
+
+        // Refresh videos
+        function refreshVideos() {
+            loadVideos();
+        }
+
+        // Update video count
+        function updateVideoCount() {
+            const count = currentVideos.length;
+            document.getElementById('videoCount').textContent = `${count} video${count !== 1 ? 's' : ''}`;
+        }
+
+        // Show/hide loading state
+        function showLoading(show) {
+            document.getElementById('loadingState').classList.toggle('hidden', !show);
+        }
+
+        // Show/hide empty state
+        function showEmptyState(show) {
+            document.getElementById('emptyState').classList.toggle('hidden', !show);
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Category filters
+            document.querySelectorAll('.category-filter').forEach(button => {
+                button.addEventListener('click', function() {
+                    const category = this.dataset.category;
+                    filterVideosByCategory(category);
+                    
+                    // Update active state
+                    document.querySelectorAll('.category-filter').forEach(btn => {
+                        btn.classList.remove('active', 'bg-blue-600');
+                        btn.classList.add('bg-slate-800');
+                    });
+                    this.classList.add('active', 'bg-blue-600');
+                    this.classList.remove('bg-slate-800');
+                });
+            });
+
+            // Search functionality
+            document.getElementById('searchInput').addEventListener('input', function() {
+                const query = this.value.toLowerCase();
+                filterVideosBySearch(query);
+            });
+        }
+
+        // Filter videos by category
+        function filterVideosByCategory(category) {
+            let filteredVideos = currentVideos;
+            
+            if (category !== 'all') {
+                filteredVideos = currentVideos.filter(video => 
+                    video.category === category
+                );
+            }
+            
+            displayVideos(filteredVideos);
+        }
+
+        // Filter videos by search
+        function filterVideosBySearch(query) {
+            if (!query) {
+                displayVideos(currentVideos);
+                return;
+            }
+            
+            const filteredVideos = currentVideos.filter(video =>
+                video.title.toLowerCase().includes(query) ||
+                video.description.toLowerCase().includes(query) ||
+                video.category.toLowerCase().includes(query)
+            );
+            
+            displayVideos(filteredVideos);
+        }
+
+        // Switch tabs
+        function switchTab(tab) {
+            // Remove active class from all tabs
+            document.querySelectorAll('nav a').forEach(link => {
+                link.classList.remove('tab-active');
+                link.classList.add('text-slate-300');
+            });
+            
+            // Add active class to clicked tab
+            event.target.classList.add('tab-active');
+            event.target.classList.remove('text-slate-300');
+            
+            if (tab === 'library') {
+                // Load user's purchased videos
+                loadUserLibrary();
+            } else {
+                // Load all videos
+                loadVideos();
+            }
+        }
+
+        // Load user library
+        async function loadUserLibrary() {
+            if (!currentUser) {
+                alert('Please sign in to view your library');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_BASE_URL}/vault/library/${currentUser.id}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    displayVideos(data.videos || []);
+                }
+            } catch (error) {
+                console.error('Error loading library:', error);
+            }
+        }
+
         // Auth Modal
         function openAuthModal() {
             document.getElementById('authModal').classList.remove('hidden');
@@ -739,15 +824,32 @@
         }
         
         function signInWithGoogle() {
-            alert('Sign in with Google would be implemented here');
-            closeAuthModal();
+            const provider = new firebase.auth.GoogleAuthProvider();
+            auth.signInWithPopup(provider).then((result) => {
+                closeAuthModal();
+                console.log('Google sign-in successful');
+            }).catch((error) => {
+                console.error('Google sign-in error:', error);
+                alert('Sign-in failed: ' + error.message);
+            });
         }
         
         function sendMagicLink() {
             const email = document.getElementById('email').value;
             if (email) {
-                alert(`Magic link sent to ${email}`);
-                closeAuthModal();
+                const actionCodeSettings = {
+                    url: window.location.href,
+                    handleCodeInApp: true
+                };
+                
+                auth.sendSignInLinkToEmail(email, actionCodeSettings).then(() => {
+                    window.localStorage.setItem('emailForSignIn', email);
+                    alert(`Magic link sent to ${email}`);
+                    closeAuthModal();
+                }).catch((error) => {
+                    console.error('Magic link error:', error);
+                    alert('Failed to send magic link: ' + error.message);
+                });
             } else {
                 alert('Please enter your email address');
             }
@@ -760,6 +862,15 @@
         
         function closeUploadModal() {
             document.getElementById('uploadModal').classList.add('hidden');
+            // Reset form
+            document.getElementById('videoInput').value = '';
+            document.getElementById('thumbnailInput').value = '';
+            document.getElementById('videoTitle').value = '';
+            document.getElementById('videoDescription').value = '';
+            document.getElementById('videoCategory').value = '';
+            document.getElementById('videoPrice').value = '5';
+            document.getElementById('videoFileName').classList.add('hidden');
+            document.getElementById('thumbnailFileName').classList.add('hidden');
         }
         
         // Handle file drops
@@ -787,31 +898,7 @@
             }
         });
         
-        function uploadVideo() {
-            const title = document.getElementById('videoTitle').value;
-            const category = document.getElementById('videoCategory').value;
-            const price = document.getElementById('videoPrice').value;
-            
-            if (!title || !category || !price) {
-                alert('Please fill in all required fields');
-                return;
-            }
-            
-            alert(`Video "${title}" uploaded successfully! Processing preview and compression...`);
-            closeUploadModal();
-        }
-        
         // Video Player Modal
-        function openVideoPlayer(title, description, views, rating) {
-            document.getElementById('videoPlayerTitle').textContent = title;
-            document.getElementById('videoPlayerDescription').textContent = description;
-            document.getElementById('videoViews').textContent = views.toLocaleString() + ' views';
-            document.getElementById('videoRating').textContent = rating;
-            
-            // In a real app, we'd set the video source here
-            document.getElementById('videoPlayerModal').classList.remove('hidden');
-        }
-        
         function closeVideoPlayer() {
             const videoPlayer = document.getElementById('videoPlayer');
             videoPlayer.pause();
@@ -821,27 +908,6 @@
         
         function downloadVideo() {
             alert('Video downloaded to your library for offline viewing');
-        }
-        
-        // Buy Video
-        function buyVideo(event, price) {
-            event.stopPropagation();
-            if (confirm(`Purchase this video for ${price} OSSY?`)) {
-                alert('Video purchased successfully! Added to your library.');
-            }
-        }
-        
-        function watchVideo(event) {
-            event.stopPropagation();
-            alert('Opening video from your library...');
-        }
-        
-        // Book Live Class
-        function bookLiveClass(event) {
-            event.stopPropagation();
-            if (confirm('Book this live class? You will receive a reminder before it starts.')) {
-                alert('Class booked successfully! Check your email for details.');
-            }
         }
         
         // Profile Menu
@@ -862,10 +928,51 @@
             document.getElementById('mobileMenu').classList.toggle('hidden');
         }
         
+        // UI Update Functions
+        function updateUIForLoggedInUser() {
+            const walletBtn = document.getElementById('walletBtn');
+            const profileImg = document.querySelector('#user-menu img');
+            
+            if (currentUser) {
+                walletBtn.innerHTML = `
+                    <i class="fas fa-wallet"></i>
+                    <span>25.50 OSSY</span>
+                `;
+                
+                if (currentUser.name) {
+                    // Update profile image if available
+                    if (currentUser.photoURL) {
+                        profileImg.src = currentUser.photoURL;
+                    }
+                }
+            }
+        }
+        
+        function updateUIForLoggedOutUser() {
+            const walletBtn = document.getElementById('walletBtn');
+            walletBtn.innerHTML = `
+                <i class="fas fa-wallet"></i>
+                <span>Sign In</span>
+            `;
+        }
+        
+        // Sign out function
+        function signOut() {
+            auth.signOut().then(() => {
+                console.log('User signed out');
+            }).catch((error) => {
+                console.error('Sign out error:', error);
+            });
+        }
+        
         // Wallet
         function showWallet() {
+            if (!currentUser) {
+                openAuthModal();
+                return;
+            }
             alert('Your wallet balance: 25.50 OSSY\n\nRecent transactions:\n- Purchased "Woodworking for Beginners" -7 OSSY\n- Received from community pool +2.50 OSSY\n- Deposited +30 OSSY');
         }
     </script>
-<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 0.8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=Crs527/crs" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
+<p style="border-radius: 8px; text-align: center; font-size: 12px; color: #fff; margin-top: 16px;position: fixed; left: 8px; bottom: 8px; z-index: 10; background: rgba(0, 0, 0, 8); padding: 4px 8px;">Made with <img src="https://enzostvs-deepsite.hf.space/logo.svg" alt="DeepSite Logo" style="width: 16px; height: 16px; vertical-align: middle;display:inline-block;margin-right:3px;filter:brightness(0) invert(1);"><a href="https://enzostvs-deepsite.hf.space" style="color: #fff;text-decoration: underline;" target="_blank" >DeepSite</a> - 🧬 <a href="https://enzostvs-deepsite.hf.space?remix=Crs527/crs" style="color: #fff;text-decoration: underline;" target="_blank" >Remix</a></p></body>
 </html>

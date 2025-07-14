@@ -9,6 +9,75 @@ import unzipper from 'unzipper';
 
 const execAsync = promisify(exec);
 
+export async function getAllVideos(req: Request, res: Response) {
+  try {
+    const videosSnapshot = await db.collection('videos').get();
+    
+    const videos = videosSnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+
+    res.json({
+      success: true,
+      videos
+    });
+  } catch (error: any) {
+    console.error('Error getting videos:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
+export async function getVideoPreview(req: Request, res: Response) {
+  try {
+    const { videoId } = req.params;
+    
+    const videoDoc = await db.collection('videos').doc(videoId).get();
+    
+    if (!videoDoc.exists) {
+      return res.status(404).json({ error: 'Video not found' });
+    }
+
+    const video = videoDoc.data()!;
+    const previewPath = path.join(__dirname, '../../../public/previews', video.previewUrl?.split('/').pop() || `${videoId}.mp4`);
+
+    if (!fs.existsSync(previewPath)) {
+      return res.status(404).json({ error: 'Preview not found' });
+    }
+
+    // Stream the preview video
+    const stat = fs.statSync(previewPath);
+    const fileSize = stat.size;
+    const range = req.headers.range;
+
+    if (range) {
+      const parts = range.replace(/bytes=/, "").split("-");
+      const start = parseInt(parts[0], 10);
+      const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+      const chunksize = (end - start) + 1;
+      const file = fs.createReadStream(previewPath, { start, end });
+      const head = {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunksize,
+        'Content-Type': 'video/mp4',
+      };
+      res.writeHead(206, head);
+      file.pipe(res);
+    } else {
+      const head = {
+        'Content-Length': fileSize,
+        'Content-Type': 'video/mp4',
+      };
+      res.writeHead(200, head);
+      fs.createReadStream(previewPath).pipe(res);
+    }
+  } catch (error: any) {
+    console.error('Error serving preview:', error);
+    res.status(500).json({ error: error.message });
+  }
+}
+
 export async function uploadVideo(req: Request, res: Response) {
   try {
     upload.single('video')(req, res, async (err) => {
@@ -30,7 +99,12 @@ export async function uploadVideo(req: Request, res: Response) {
       const previewPath = path.join(__dirname, '../../../public/previews', `${videoId}.mp4`);
       const thumbnailPath = thumbnailFile 
         ? path.join(__dirname, '../../../public/thumbnails', `${videoId}.jpg`)
-        : null;
+        : path.join(__dirname, '../../../public/thumbnails', `${videoId}.jpg`);
+
+      // Create directories if they don't exist
+      fs.mkdirSync(path.dirname(vaultPath), { recursive: true });
+      fs.mkdirSync(path.dirname(previewPath), { recursive: true });
+      fs.mkdirSync(path.dirname(thumbnailPath), { recursive: true });
 
       // Compress video and move to vault
       await execAsync(`ffmpeg -i "${videoPath}" -c:v libx264 -crf 23 -preset medium -c:a aac -b:a 128k "${vaultPath}"`);

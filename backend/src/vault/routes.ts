@@ -3,10 +3,18 @@ import {
   uploadVideo,
   getVideo,
   downloadVideo,
-  getVaultStats
+  getVaultStats,
+  getAllVideos,
+  getVideoPreview
 } from './controllers/vaultController';
 
 const router = Router();
+
+// Get all videos from vault
+router.get('/videos', getAllVideos);
+
+// Get video preview
+router.get('/preview/:videoId', getVideoPreview);
 
 // Upload video to vault
 router.post('/upload', uploadVideo);
